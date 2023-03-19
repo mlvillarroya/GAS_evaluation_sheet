@@ -1,247 +1,163 @@
-function onOpen() {
-  const ctes = constants();
-  SpreadsheetApp.getUi().createMenu('Evaluation')
-    .addSubMenu(
-        SpreadsheetApp.getUi().createMenu('Students')
-        .addItem('Create student data sheet','student_data_sheet')) 
-    .addSubMenu(
-        SpreadsheetApp.getUi().createMenu('Avaluation sheets')
-        .addItem('Create blank evaluation sheet','evaluation_sheet')
-        .addItem('Create evaluation columns','compute_evaluation_sheet')
-        .addItem('Fill undone rows with \"Correct\"','fill_undone_rows'))
-    .addToUi();
+function spreadsheet_exists(ss,sheetname){    
+    if (ss.getSheetByName(sheetname)!= null) return true;
+    return false;
 }
 
-function student_data_sheet(){
-  const ctes = constants();
-  var ss = ctes.SS;
-  if (spreadsheet_exists(ss,ctes.STUDENT_DATA_SHEET_NAME)) {
-    SpreadsheetApp.getUi().alert('Sheet already exists (' + ctes.STUDENT_DATA_SHEET_NAME + '). Please fill in this sheet');
-    return;
-    }
-  ss.insertSheet();
-  const sheet = ss.getActiveSheet();
-  sheet.setName(ctes.STUDENT_DATA_SHEET_NAME);
-  create_student_sheet_content(ctes,sheet);
-  ss.moveActiveSheet(2);  
+function constants() {
+  return {
+    SS: SpreadsheetApp.getActiveSpreadsheet(),
+    BASE_EVALUATION_SHEET_NAME: 'BaseEvaluation',
+    STUDENT_DATA_SHEET_NAME: 'StudentData',    
+    STUDENT_DATA_STUDENT_FIRST_NAME: 'First name',
+    STUDENT_DATA_STUDENT_LAST_NAME: 'Last name',
+    STUDENT_DATA_STUDENT_EMAIL: 'Email',
+    EVALUATION_FIRST_COLUMN_NUMBER: 4,
+    EVALUATION_FIRST_ROW_NUMBER: 2,
+    EVALUATION_ITEMS_ROW: 1,
+    EVALUATION_MAX_MARK_CELL: 'D6',
+    PENALTY_COLUMN_TITLE: 'Penalty',
+    EXTRA_COMMENT_COLUMN_TITLE: 'Extra comment',
+    MARK_COLUMN_TITLE: 'Mark',
+    COMMENT_COLUMN_TITLE: 'Comment',
+    DONE_COLUMN_TITLE: 'Done',
+    VARIABLES_SHEET_NAME: 'Variables',
+    ITEMS_NUMBER_VARIABLE_NAME: 'Items number',
+    DONE_COLUMN_VARIABLE_NAME: 'Done column',
+    ROWS_NUMBER_VARIABLE_NAME: 'Rows number',
+    CORRECT_VALUE: 'Correcte'
+    // ...
   }
-
-function evaluation_sheet(){
-  const ctes = constants();
-  var ss = ctes.SS;
-  if (!spreadsheet_exists(ss,ctes.STUDENT_DATA_SHEET_NAME))  {
-    SpreadsheetApp.getUi().alert('Before creating evaluation sheet, student sheet is needed. Please, create and fill it first');
-    return;
-    }
-  if (spreadsheet_exists(ss,ctes.BASE_EVALUATION_SHEET_NAME))  {
-    SpreadsheetApp.getUi().alert('Sheet already exists (' + ctes.BASE_EVALUATION_SHEET_NAME + '). Please fill in this sheet');
-    return;
-    }
-  ss.insertSheet();
-  const sheet = ss.getActiveSheet();
-  create_evaluation_blank_sheet_content(ctes,sheet);
-  ss.moveActiveSheet(3);
 }
 
-function compute_evaluation_sheet(){
-  const ctes = constants();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (!spreadsheet_exists(ss,ctes.STUDENT_DATA_SHEET_NAME))  {
-    SpreadsheetApp.getUi().alert('Before creating evaluation sheet, student sheet is needed. Please, create and fill it first');
-    return;
-    }
-  var students_sheet = ss.getSheetByName(ctes.STUDENT_DATA_SHEET_NAME);
-  var students_data = students_sheet.getDataRange().getValues();
-  var students = [];
-  for (var i = 1; i < students_sheet.getLastRow(); i++) {
-    var student = students_data[i];
-    students.push(student);
+function create_student_sheet_content(ctes,sheet)
+  {
+    sheet.getRange(1,1).setValue(ctes.STUDENT_DATA_STUDENT_FIRST_NAME);  
+    sheet.getRange(1,2).setValue(ctes.STUDENT_DATA_STUDENT_LAST_NAME);
+    sheet.getRange(1,3).setValue(ctes.STUDENT_DATA_STUDENT_EMAIL);
+    sheet.getRange('A1:C1').activate();
+    sheet.getActiveRangeList().setBackground('#fff2cc');
   }
-  var sheet = ss.getActiveSheet();
-  var exercise_name = sheet.getRange(1,2).getValue();
-  if (exercise_name == null || exercise_name == '') {
-    SpreadsheetApp.getUi().alert('Exercise name has to be filled');
-    return;
-  }
-  var exercise_short_name = sheet.getRange(2,2).getValue();
-  if (exercise_short_name == null || exercise_short_name == '') {
-    SpreadsheetApp.getUi().alert('Exercise short name has to be filled');
-    return;
-  }
-  var items_row = sheet.getRange(2,4,1,sheet.getLastColumn()-3).getValues()[0];
-  var items=[];
-  items_row.forEach((element)=>{
-    if (!element.toString().startsWith("Item") && element != '') items.push(element);
-  });
-  var weights_row = sheet.getRange(4,4,1,items.length).getValues()[0];
-  var weights = [];
-  weights_row.forEach((element)=>{
-    if (!isNaN(Number(element))) weights.push(Number(element));
-    else weights.push(0);
-  });
-  var max_mark_cell_content = sheet.getRange(ctes.EVALUATION_MAX_MARK_CELL).getValue();
-  var max_mark = !isNaN(Number(max_mark_cell_content)) ? max_mark_cell_content : 10;
 
-  //ss.deleteSheet(sheet);
-  sheet = ss.insertSheet();
-  sheet.setName(exercise_short_name);
-  ss.moveActiveSheet(ss.getNumSheets());
-  create_student_sheet_content(ctes,sheet);
-  sheet.getRange(ctes.EVALUATION_FIRST_ROW_NUMBER,1).activate();
-  students.forEach((st)=>{
-    var i = ss.getActiveRange().getRow();
-    var j = ss.getActiveRange().getColumn();
-    sheet.getRange(i,j).setValue(st[0]);
-    sheet.getRange(i,j+1).setValue(st[1]);
-    sheet.getRange(i,j+2).setValue(st[2]);
-    sheet.getRange(i+1,j).activate();
-  });
-  sheet.autoResizeColumns(3, 1);
-  sheet.getRange(1,ctes.EVALUATION_FIRST_COLUMN_NUMBER).activate();
-  items.forEach((it)=>{
-    var j = ss.getActiveRange().getColumn();
-    sheet.getRange(ctes.EVALUATION_ITEMS_ROW,j).setValue(it);
-    sheet.getRange(ctes.EVALUATION_ITEMS_ROW,j+2).activate();
-  });
-  var j = ss.getActiveRange().getColumn();
-  sheet.getRange(1,j).setValue(ctes.PENALTY_COLUMN_TITLE).activate();
-  var penalty_cell_column = get_active_cell_column_letter(sheet);
-  sheet.getRange(1,j+1).setValue(ctes.EXTRA_COMMENT_COLUMN_TITLE).activate();
-  var extra_comment_cell_column = get_active_cell_column_letter(sheet);
-  sheet.getRange(1,j+2).setValue(ctes.MARK_COLUMN_TITLE).activate();
-  var mark_cell_column = get_active_cell_column_letter(sheet);
-  sheet.getRange(1,j+3).setValue(ctes.COMMENT_COLUMN_TITLE).activate();
-  var comment_cell_column = get_active_cell_column_letter(sheet);
-  sheet.getRange(1,j+4).setValue(ctes.DONE_COLUMN_TITLE).activate();
-  var done_cell_column = get_active_cell_column_letter(sheet);
-  var last_row = sheet.getLastRow() + 1;
-  sheet.getRange(last_row, ctes.EVALUATION_FIRST_COLUMN_NUMBER).activate();
-  weights.forEach((we)=>{
-    var j = ss.getActiveRange().getColumn();
-    sheet.getRange(last_row,j).setValue(we);
-    sheet.getRange(last_row,j+2).activate();
-  });
-  sheet.getRange(1,ctes.EVALUATION_FIRST_COLUMN_NUMBER).activate();
-  var evaluation_first_column_letter = get_active_cell_column_letter(sheet);
-  sheet.getRange(1,ctes.EVALUATION_FIRST_COLUMN_NUMBER + 2 * (items.length - 1)).activate();
-  var evaluation_last_column_letter = get_active_cell_column_letter(sheet);
-  var weights_interval = "$" + evaluation_first_column_letter + '$' + last_row +":" + '$' + evaluation_last_column_letter + '$' + last_row;
-  sheet.getRange(mark_cell_column + "1").activate();
-  go_down_one_cell(sheet);
-  var row_number = get_active_cell_row_number(sheet);
-  var current_marks_interval = evaluation_first_column_letter + get_active_cell_row_number(sheet) +":" + evaluation_last_column_letter + get_active_cell_row_number(sheet);  
-  sheet.getActiveCell().setValue("=IF(" + evaluation_first_column_letter + get_active_cell_row_number(sheet) + "=\"\";\"\";(SUMPRODUCT("+ current_marks_interval + ";" + weights_interval + ")/SUM(" + weights_interval + ")*"+ max_mark +"/10) + " + penalty_cell_column + get_active_cell_row_number(sheet) + ")");
-  go_right_one_cell(sheet);
-  var comment_phrase = "=IF(" + evaluation_first_column_letter + get_active_cell_row_number(sheet) + "<>\"\";\"<div>\"&  ";
-  items.forEach((item)=>{
-    var column_letter = get_cell_column_letter(find_first_cell_by_value(sheet,item));
-    comment_phrase += "$" + column_letter + "$" + ctes.EVALUATION_ITEMS_ROW  + "&\": \"&" + column_letter + row_number + "*$" + column_letter + "$" + last_row + "/SUM($" + evaluation_first_column_letter + "$" + last_row + ":$" + evaluation_last_column_letter + "$" + last_row + ") * " + max_mark +"/10 &\" punts.      Comentari: \"&" + nextChar(column_letter) + row_number + "&\"<br>\"&"; 
-  });
-  comment_phrase += "\"<br>\" &" + extra_comment_cell_column + row_number + "& \"</div>\";\"\")";
-  sheet.getActiveCell().setValue(comment_phrase);
-  fill_down(ss,mark_cell_column,2,comment_cell_column,last_row-1);
-  sheet.getRange('A1:'+done_cell_column+last_row).activate();
-  sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);  
-  sheet.getRange('D1:'+done_cell_column+'1').activate();  
-  sheet.getActiveRangeList().setBackground('#fff2cc').setHorizontalAlignment('center');
-  sheet.getRange('A' + last_row + ':'+done_cell_column+last_row).activate();  
-  sheet.getActiveRangeList().setBackground('#fff2cc');
-  sheet.getRange(mark_cell_column+'2:'+comment_cell_column+String(last_row-1)).activate();  
-  sheet.getActiveRangeList().setBackground('#d9ead3');
-  sheet.getRange('A1').setValue('WEIGHTS');
-  sheet.getRange(done_cell_column+'2:'+done_cell_column+String(last_row-1)).setDataValidation(SpreadsheetApp.newDataValidation()
-  .setAllowInvalid(false)
-  .requireValueInList(['Yes', 'No','X'], true)
-  .build());
-  sheet.getRange(done_cell_column + "2").activate();
-  for (var i = 2; i < last_row; i++) {
-    sheet.getActiveCell().setValue('No');
-    go_down_one_cell(sheet);
+function create_evaluation_blank_sheet_content(ctes,sheet)
+  {
+    sheet.setName(ctes.BASE_EVALUATION_SHEET_NAME);
+    sheet.getRange('A1').activate();
+    sheet.getCurrentCell().setValue('Exercise name');
+    sheet.getRange('A2').activate();
+    sheet.getCurrentCell().setValue('Short name');
+    sheet.getRange('B1').activate();
+    sheet.setColumnWidth(2, 463);
+    sheet.getRange('A1:B2').activate();
+    sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange('A1:A2').activate();
+    sheet.getActiveRangeList().setBackground('#fff2cc');
+    sheet.getRange('D1').activate();
+    sheet.getCurrentCell().setValue('Items');
+    sheet.getRange('D2').activate();
+    sheet.getCurrentCell().setValue('Item 1');
+    sheet.getRange('E2').activate();
+    sheet.getCurrentCell().setValue('Item 2');
+    sheet.getRange('F2').activate();
+    sheet.getCurrentCell().setValue('Item 3');
+    sheet.getRange('G2').activate();
+    sheet.getCurrentCell().setValue('Item 4');
+    sheet.getRange('H2').activate();
+    sheet.getCurrentCell().setValue('Item 5');
+    sheet.getRange('I2').activate();
+    sheet.getCurrentCell().setValue('Item 6');
+    sheet.getRange('J2').activate();
+    sheet.getCurrentCell().setValue('Item 7');
+    sheet.getRange('K2').activate();
+    sheet.getCurrentCell().setValue('Item 8');
+    sheet.getRange('L2').activate();
+    sheet.getCurrentCell().setValue('Item 9');
+    sheet.getRange('M2').activate();
+    sheet.getCurrentCell().setValue('Item 10');
+    sheet.getRange('D3').activate();
+    sheet.getCurrentCell().setValue('Weights');
+    sheet.getRange('D4').activate();
+    sheet.getCurrentCell().setValue('Weight 1');
+    sheet.getRange('E4').activate();
+    sheet.getCurrentCell().setValue('Weight 2');
+    sheet.getRange('F4').activate();
+    sheet.getCurrentCell().setValue('Weight 3');
+    sheet.getRange('G4').activate();
+    sheet.getCurrentCell().setValue('Weight 4');
+    sheet.getRange('H4').activate();
+    sheet.getCurrentCell().setValue('Weight 5');
+    sheet.getRange('I4').activate();
+    sheet.getCurrentCell().setValue('Weight 6');
+    sheet.getRange('J4').activate();
+    sheet.getCurrentCell().setValue('Weight 7');
+    sheet.getRange('K4').activate();
+    sheet.getCurrentCell().setValue('Weight 8');
+    sheet.getRange('L4').activate();
+    sheet.getCurrentCell().setValue('Weight 9');
+    sheet.getRange('M4').activate();
+    sheet.getCurrentCell().setValue('Weight 10');
+    sheet.getRange('D1:M4').activate();
+    sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange('D1:M1').activate().mergeAcross();
+    sheet.getRange('D3:M3').activate().mergeAcross();
+    sheet.getRange('D1:M2').activate();
+    sheet.getActiveRangeList().setBackground('#d9d2e9');
+    sheet.getRange('D3:M4').activate();
+    sheet.getActiveRangeList().setBackground('#c9daf8');
+    sheet.getRange('D5').activate();
+    sheet.getCurrentCell().setValue('Max mark');
+    sheet.getRange('D6').activate();
+    sheet.getCurrentCell().setValue(10);
+    sheet.getRange('D5:D6').activate();
+    sheet.getActiveRangeList().setBackground('#b6d7a8').setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
   }
-  sheet.getRange(done_cell_column + last_row).setValue("=COUNTIF(" + done_cell_column + "2:" + done_cell_column + String(last_row-1) + ";\"Yes\")");
-
-  var conditionalFormatRules = sheet.getConditionalFormatRules();
-  conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
-  .setRanges([sheet.getRange('D2:'+ extra_comment_cell_column + String(last_row - 1))])
-  .whenFormulaSatisfied('=$'+ done_cell_column +'2="X"')
-  .setBackground('#EA9999')
-  .build());
-  sheet.setConditionalFormatRules(conditionalFormatRules);
-  conditionalFormatRules = sheet.getConditionalFormatRules();
-  conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
-  .setRanges([sheet.getRange('D2:'+ extra_comment_cell_column + String(last_row - 1))])
-  .whenFormulaSatisfied('=$'+ done_cell_column +'2="Yes"')
-  .setBackground('#CFE2F3')
-  .build());
-  sheet.setConditionalFormatRules(conditionalFormatRules);
-
-  sheet.setFrozenColumns(2);
-  sheet.setFrozenRows(1);
-  sheet.getRange('A1').activate();
-
-  if (!spreadsheet_exists(ss,ctes.VARIABLES_SHEET_NAME)) {
-    ss.insertSheet();
-    ss.getActiveSheet().setName(ctes.VARIABLES_SHEET_NAME);
-    }
-  sheet = ss.getSheetByName(ctes.VARIABLES_SHEET_NAME);
-  sheet.getRange('A1').activate();
-  while ((sheet.getActiveCell().getValue() != '') && (sheet.getActiveCell().getValue() != exercise_short_name)) go_down_one_cell(sheet);
-  if (sheet.getActiveCell().getValue() != exercise_short_name) {
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.ITEMS_NUMBER_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(items.length);
-  go_down_and_left_one_row(sheet);
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.DONE_COLUMN_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(done_cell_column);
-  go_down_and_left_one_row(sheet);
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.ROWS_NUMBER_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(last_row-2);
-  }
-  sheet.hideSheet();
+function get_cell_column_letter(cell){
+  return cell.getA1Notation().match(/([A-Z]+)/)[0];
+}
+function get_active_cell_column_letter(sheet){
+  return sheet.getActiveRange().getA1Notation().match(/([A-Z]+)/)[0];
+}
+function get_active_cell_row_number(sheet){
+  return sheet.getActiveRange().getA1Notation().match(/([0-9]+)/)[0];
+}
+function go_down_one_cell(sheet) {
+  sheet.getRange(sheet.getActiveRange().getRow()+1,sheet.getActiveRange().getColumn()).activate();
+}
+function go_down_and_left_one_row(sheet){
+    sheet.getRange(sheet.getActiveRange().getRow()+1,1).activate();
+}
+function go_right_one_cell(sheet) {
+  sheet.getRange(sheet.getActiveRange().getRow(),sheet.getActiveRange().getColumn()+1).activate();
+}
+function fill_down(ss,first_column,first_row,last_column,last_row){
+  ss.getRange(first_column + first_row + ":" + last_column + first_row).activate();
+  ss.getActiveRange().autoFill(ss.getRange(first_column + first_row + ":" + last_column + last_row),SpreadsheetApp.AutoFillSeries.DEFAULT_SERIES);
 }
 
-function fill_undone_rows(){
-  const ctes = constants();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getActiveSheet();
-  if (!spreadsheet_exists(ss,ctes.VARIABLES_SHEET_NAME))  {
-    SpreadsheetApp.getUi().alert('Error. Variables sheet is not created. Please, talk to the administrator.');
-    return;
-    }  
-  var variables_sheet = ss.getSheetByName(ctes.VARIABLES_SHEET_NAME);
-  var variables_data = variables_sheet.getDataRange().getValues();
-  variables_data = variables_data.filter((row) => {
-    return row[0] == sheet.getName();
-  });  
-  if (variables_data.length == 0)  {
-    SpreadsheetApp.getUi().alert('Error. Not information about this sheet is found in variables sheet. Please, talk to the administrator.');
-    return;
-    }
-
-  var items_number = look_for_variable(variables_data,ctes.ITEMS_NUMBER_VARIABLE_NAME);
-  var rows_number = look_for_variable(variables_data,ctes.ROWS_NUMBER_VARIABLE_NAME);
-  var done_column = look_for_variable(variables_data,ctes.DONE_COLUMN_VARIABLE_NAME);
-
-  if (items_number == '' || done_column == '' || rows_number == '')  {
-    SpreadsheetApp.getUi().alert('Error. Items number or Done column letter not found in variables sheet. Please, talk to the administrator.');
-    return;
-    }  
-  variables_sheet.hideSheet();
-  sheet.getRange("D2").activate();
-  for (var i = 2; i<rows_number+2; i++) {
-    if (sheet.getRange(done_column + i).getValue() == "No") {
-      for (var j=0 ; j<items_number * 2; j += 2 ) {
-        sheet.getRange(i,j+4).setValue(10);
-        sheet.getRange(i,j+5).setValue(ctes.CORRECT_VALUE)
+function find_first_cell_by_value(sheet,value){
+  var tf = sheet.createTextFinder(value);
+  return tf.findAll()[0];
+}
+function nextChar(c) {
+    var a = '';
+    if ((c[c.length - 1] =='Z') && (c.split('').every(char => char === c[0]))) {
+        for (i=0;i<c.length+1;i++) a += 'A';
+        return a;
+      }
+    else {
+            return c.slice(0,-1) + String.fromCharCode(c.charCodeAt(c.length-1) + 1);
       }
     }
-  }
+function look_for_variable(array, variable_name) {
+  var variable_row = array.filter((row)=>{
+    return row[1] == variable_name;
+  });
+  if (variable_row.length == 1) return variable_row[0][2];
+  else return '';
 }
+
+/*function look_for_variable(sheet, start_cell, sheet_name, variable_name) {
+  start_cell.activate();
+  while ((sheet.getCurrentCell().getValue() == sheet_name) && (sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+1).getValue() != variable_name)) go_down_one_cell(sheet)
+  if (sheet.getCurrentCell().getValue() == sheet_name) return sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+2).getValue();
+  else return '';
+}*/
