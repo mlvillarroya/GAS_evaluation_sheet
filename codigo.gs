@@ -204,8 +204,8 @@ function compute_evaluation_sheet(){
   sheet.getActiveCell().setValue(ctes.ROWS_NUMBER_VARIABLE_NAME);
   go_right_one_cell(sheet);
   sheet.getActiveCell().setValue(last_row-2);
-  sheet.hideSheet();
   }
+  sheet.hideSheet();
 }
 
 function fill_undone_rows(){
@@ -217,16 +217,19 @@ function fill_undone_rows(){
     return;
     }  
   var variables_sheet = ss.getSheetByName(ctes.VARIABLES_SHEET_NAME);
-  variables_sheet.getRange("A1").activate();
-  while ((variables_sheet.getActiveCell().getValue() != sheet.getName()) && (variables_sheet.getActiveCell().getValue() != '')) go_down_one_cell(variables_sheet); 
-  if (variables_sheet.getActiveCell().getValue() == '')  {
+  var variables_data = variables_sheet.getDataRange().getValues();
+  variables_data = variables_data.filter((row) => {
+    return row[0] == sheet.getName();
+  });  
+  if (variables_data.length == 0)  {
     SpreadsheetApp.getUi().alert('Error. Not information about this sheet is found in variables sheet. Please, talk to the administrator.');
     return;
     }
-  var first_variables_cell = sheet.getActiveCell();
-  var items_number = look_for_variable(variables_sheet,first_variables_cell,sheet.getName(),ctes.ITEMS_NUMBER_VARIABLE_NAME);
-  var rows_number = look_for_variable(variables_sheet,first_variables_cell,sheet.getName(),ctes.ROWS_NUMBER_VARIABLE_NAME);
-  var done_column = look_for_variable(variables_sheet,first_variables_cell,sheet.getName(),ctes.DONE_COLUMN_VARIABLE_NAME);
+
+  var items_number = look_for_variable(variables_data,ctes.ITEMS_NUMBER_VARIABLE_NAME);
+  var rows_number = look_for_variable(variables_data,ctes.ROWS_NUMBER_VARIABLE_NAME);
+  var done_column = look_for_variable(variables_data,ctes.DONE_COLUMN_VARIABLE_NAME);
+
   if (items_number == '' || done_column == '' || rows_number == '')  {
     SpreadsheetApp.getUi().alert('Error. Items number or Done column letter not found in variables sheet. Please, talk to the administrator.');
     return;
