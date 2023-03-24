@@ -184,28 +184,23 @@ function compute_evaluation_sheet(){
     ss.getActiveSheet().setName(ctes.VARIABLES_SHEET_NAME);
     }
   sheet = ss.getSheetByName(ctes.VARIABLES_SHEET_NAME);
-  sheet.getRange('A1').activate();
-  while ((sheet.getActiveCell().getValue() != '') && (sheet.getActiveCell().getValue() != exercise_short_name)) go_down_one_cell(sheet);
-  if (sheet.getActiveCell().getValue() != exercise_short_name) {
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.ITEMS_NUMBER_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(items.length);
-  go_down_and_left_one_row(sheet);
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.DONE_COLUMN_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(done_cell_column);
-  go_down_and_left_one_row(sheet);
-  sheet.getActiveCell().setValue(exercise_short_name);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(ctes.ROWS_NUMBER_VARIABLE_NAME);
-  go_right_one_cell(sheet);
-  sheet.getActiveCell().setValue(last_row-2);
-  }
   sheet.hideSheet();
+  var variables_sheet_data = sheet.getDataRange().getValues();
+  variables_sheet_data = variables_sheet_data.filter((row)=>{
+    return row[0]==exercise_short_name;
+  });
+  if (variables_sheet_data.length==0) {
+    var variables_lastrow = sheet.getLastRow();
+    sheet.getRange(variables_lastrow+1,1).setValue(exercise_short_name);
+    sheet.getRange(variables_lastrow+1,2).setValue(ctes.ITEMS_NUMBER_VARIABLE_NAME);
+    sheet.getRange(variables_lastrow+1,3).setValue(items.length);
+    sheet.getRange(variables_lastrow+2,1).setValue(exercise_short_name);
+    sheet.getRange(variables_lastrow+2,2).setValue(ctes.DONE_COLUMN_VARIABLE_NAME);
+    sheet.getRange(variables_lastrow+2,3).setValue(done_cell_column);
+    sheet.getRange(variables_lastrow+3,1).setValue(exercise_short_name);
+    sheet.getRange(variables_lastrow+3,2).setValue(ctes.ROWS_NUMBER_VARIABLE_NAME);
+    sheet.getRange(variables_lastrow+3,3).setValue(last_row-2);    
+  }
 }
 
 function fill_undone_rows(){
