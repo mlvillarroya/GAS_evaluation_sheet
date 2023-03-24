@@ -154,10 +154,3 @@ function look_for_variable(array, variable_name) {
   if (variable_row.length == 1) return variable_row[0][2];
   else return '';
 }
-
-/*function look_for_variable(sheet, start_cell, sheet_name, variable_name) {
-  start_cell.activate();
-  while ((sheet.getCurrentCell().getValue() == sheet_name) && (sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+1).getValue() != variable_name)) go_down_one_cell(sheet)
-  if (sheet.getCurrentCell().getValue() == sheet_name) return sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+2).getValue();
-  else return '';
-}*/
