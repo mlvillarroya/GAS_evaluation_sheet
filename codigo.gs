@@ -1,15 +1,6 @@
 function onOpen() {
   const ctes = constants();
-  SpreadsheetApp.getUi().createMenu('Evaluation')
-    .addSubMenu(
-        SpreadsheetApp.getUi().createMenu('Students')
-        .addItem('Create student data sheet','student_data_sheet')) 
-    .addSubMenu(
-        SpreadsheetApp.getUi().createMenu('Avaluation sheets')
-        .addItem('Create blank evaluation sheet','evaluation_sheet')
-        .addItem('Create evaluation columns','compute_evaluation_sheet')
-        .addItem('Fill undone rows with \"Correct\"','fill_undone_rows'))
-    .addToUi();
+  create_menu();
 }
 
 function student_data_sheet(){
@@ -39,7 +30,7 @@ function evaluation_sheet(){
     }
   ss.insertSheet();
   const sheet = ss.getActiveSheet();
-  create_evaluation_blank_sheet_content(ctes,sheet);
+  create_evaluation_blank_sheet_content(sheet);
   ss.moveActiveSheet(3);
 }
 
@@ -51,12 +42,8 @@ function compute_evaluation_sheet(){
     return;
     }
   var students_sheet = ss.getSheetByName(ctes.STUDENT_DATA_SHEET_NAME);
-  var students_data = students_sheet.getDataRange().getValues();
-  var students = [];
-  for (var i = 1; i < students_sheet.getLastRow(); i++) {
-    var student = students_data[i];
-    students.push(student);
-  }
+  var students = students_sheet.getDataRange().getValues();
+  students.shift();
   var sheet = ss.getActiveSheet();
   var exercise_name = sheet.getRange(1,2).getValue();
   if (exercise_name == null || exercise_name == '') {
@@ -82,7 +69,7 @@ function compute_evaluation_sheet(){
   var max_mark_cell_content = sheet.getRange(ctes.EVALUATION_MAX_MARK_CELL).getValue();
   var max_mark = !isNaN(Number(max_mark_cell_content)) ? max_mark_cell_content : 10;
 
-  //ss.deleteSheet(sheet);
+  ss.deleteSheet(sheet);
   sheet = ss.insertSheet();
   sheet.setName(exercise_short_name);
   ss.moveActiveSheet(ss.getNumSheets());
@@ -91,12 +78,11 @@ function compute_evaluation_sheet(){
   students.forEach((st)=>{
     var i = ss.getActiveRange().getRow();
     var j = ss.getActiveRange().getColumn();
-    sheet.getRange(i,j).setValue(st[0]);
-    sheet.getRange(i,j+1).setValue(st[1]);
-    sheet.getRange(i,j+2).setValue(st[2]);
+    sheet.getRange(i,j).setValue(st[0] + ' ' + st[1]);
+    sheet.getRange(i,j+1).setValue(st[2]);
     sheet.getRange(i+1,j).activate();
   });
-  sheet.autoResizeColumns(3, 1);
+  sheet.autoResizeColumns(1, 2);
   sheet.getRange(1,ctes.EVALUATION_FIRST_COLUMN_NUMBER).activate();
   items.forEach((it)=>{
     var j = ss.getActiveRange().getColumn();
@@ -135,20 +121,20 @@ function compute_evaluation_sheet(){
   var comment_phrase = "=IF(" + evaluation_first_column_letter + get_active_cell_row_number(sheet) + "<>\"\";\"<div>\"&  ";
   items.forEach((item)=>{
     var column_letter = get_cell_column_letter(find_first_cell_by_value(sheet,item));
-    comment_phrase += "$" + column_letter + "$" + ctes.EVALUATION_ITEMS_ROW  + "&\": \"&" + column_letter + row_number + "*$" + column_letter + "$" + last_row + "/SUM($" + evaluation_first_column_letter + "$" + last_row + ":$" + evaluation_last_column_letter + "$" + last_row + ") * " + max_mark +"/10 &\" punts.      Comentari: \"&" + nextChar(column_letter) + row_number + "&\"<br>\"&"; 
+    comment_phrase += "$" + column_letter + "$" + ctes.EVALUATION_ITEMS_ROW  + "&\": \"& ROUND(" + column_letter + row_number + "*$" + column_letter + "$" + last_row + "/SUM($" + evaluation_first_column_letter + "$" + last_row + ":$" + evaluation_last_column_letter + "$" + last_row + ");2) * " + max_mark +"/10 &\" punts.      Comentari: \"&" + nextChar(column_letter) + row_number + "&\"<br>\"&"; 
   });
   comment_phrase += "\"<br>\" &" + extra_comment_cell_column + row_number + "& \"</div>\";\"\")";
   sheet.getActiveCell().setValue(comment_phrase);
   fill_down(ss,mark_cell_column,2,comment_cell_column,last_row-1);
   sheet.getRange('A1:'+done_cell_column+last_row).activate();
   sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);  
-  sheet.getRange('D1:'+done_cell_column+'1').activate();  
+  sheet.getRange('C1:'+done_cell_column+'1').activate();  
   sheet.getActiveRangeList().setBackground('#fff2cc').setHorizontalAlignment('center');
   sheet.getRange('A' + last_row + ':'+done_cell_column+last_row).activate();  
   sheet.getActiveRangeList().setBackground('#fff2cc');
   sheet.getRange(mark_cell_column+'2:'+comment_cell_column+String(last_row-1)).activate();  
   sheet.getActiveRangeList().setBackground('#d9ead3');
-  sheet.getRange('A1').setValue('WEIGHTS');
+  sheet.getRange(last_row,1).setValue('WEIGHTS');
   sheet.getRange(done_cell_column+'2:'+done_cell_column+String(last_row-1)).setDataValidation(SpreadsheetApp.newDataValidation()
   .setAllowInvalid(false)
   .requireValueInList(['Yes', 'No','X'], true)
@@ -162,14 +148,14 @@ function compute_evaluation_sheet(){
 
   var conditionalFormatRules = sheet.getConditionalFormatRules();
   conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
-  .setRanges([sheet.getRange('D2:'+ extra_comment_cell_column + String(last_row - 1))])
+  .setRanges([sheet.getRange('C2:'+ extra_comment_cell_column + String(last_row - 1))])
   .whenFormulaSatisfied('=$'+ done_cell_column +'2="X"')
   .setBackground('#EA9999')
   .build());
   sheet.setConditionalFormatRules(conditionalFormatRules);
   conditionalFormatRules = sheet.getConditionalFormatRules();
   conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
-  .setRanges([sheet.getRange('D2:'+ extra_comment_cell_column + String(last_row - 1))])
+  .setRanges([sheet.getRange('C2:'+ extra_comment_cell_column + String(last_row - 1))])
   .whenFormulaSatisfied('=$'+ done_cell_column +'2="Yes"')
   .setBackground('#CFE2F3')
   .build());
@@ -230,12 +216,11 @@ function fill_undone_rows(){
     return;
     }  
   variables_sheet.hideSheet();
-  sheet.getRange("D2").activate();
   for (var i = 2; i<rows_number+2; i++) {
     if (sheet.getRange(done_column + i).getValue() == "No") {
-      for (var j=0 ; j<items_number * 2; j += 2 ) {
-        sheet.getRange(i,j+4).setValue(10);
-        sheet.getRange(i,j+5).setValue(ctes.CORRECT_VALUE)
+      for (var j=constants().EVALUATION_FIRST_COLUMN_NUMBER ; j<constants().EVALUATION_FIRST_COLUMN_NUMBER+items_number * 2; j += 2 ) {
+        sheet.getRange(i,j).setValue(10);
+        sheet.getRange(i,j+1).setValue(ctes.CORRECT_VALUE)
       }
     }
   }
