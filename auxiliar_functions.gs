@@ -8,10 +8,10 @@ function constants() {
     SS: SpreadsheetApp.getActiveSpreadsheet(),
     BASE_EVALUATION_SHEET_NAME: 'BaseEvaluation',
     STUDENT_DATA_SHEET_NAME: 'StudentData',    
-    STUDENT_DATA_STUDENT_FIRST_NAME: 'First name',
+    STUDENT_DATA_STUDENT_FIRST_NAME: 'Full name',
     STUDENT_DATA_STUDENT_LAST_NAME: 'Last name',
     STUDENT_DATA_STUDENT_EMAIL: 'Email',
-    EVALUATION_FIRST_COLUMN_NUMBER: 4,
+    EVALUATION_FIRST_COLUMN_NUMBER: 3,
     EVALUATION_FIRST_ROW_NUMBER: 2,
     EVALUATION_ITEMS_ROW: 1,
     EVALUATION_MAX_MARK_CELL: 'D6',
@@ -29,6 +29,22 @@ function constants() {
   }
 }
 
+function create_menu(){
+    SpreadsheetApp.getUi().createMenu('Evaluation')
+    .addSubMenu(
+        SpreadsheetApp.getUi().createMenu('Students')
+        .addItem('Create student data sheet','student_data_sheet')) 
+    .addSubMenu(
+        SpreadsheetApp.getUi().createMenu('Avaluation sheets')
+        .addItem('Create blank evaluation sheet','evaluation_sheet')
+        .addItem('Create evaluation columns','compute_evaluation_sheet')
+        .addItem('Fill undone rows with \"Correct\"','fill_undone_rows'))
+    .addSubMenu(
+        SpreadsheetApp.getUi().createMenu('Send to moodle')
+        .addItem('Create script for moodle','generate_script')) 
+    .addToUi();
+}
+
 function create_student_sheet_content(ctes,sheet)
   {
     sheet.getRange(1,1).setValue(ctes.STUDENT_DATA_STUDENT_FIRST_NAME);  
@@ -38,77 +54,31 @@ function create_student_sheet_content(ctes,sheet)
     sheet.getActiveRangeList().setBackground('#fff2cc');
   }
 
-function create_evaluation_blank_sheet_content(ctes,sheet)
+function create_evaluation_blank_sheet_content(sheet)
   {
-    sheet.setName(ctes.BASE_EVALUATION_SHEET_NAME);
-    sheet.getRange('A1').activate();
-    sheet.getCurrentCell().setValue('Exercise name');
-    sheet.getRange('A2').activate();
-    sheet.getCurrentCell().setValue('Short name');
-    sheet.getRange('B1').activate();
+    //sheet = sheet || SpreadsheetApp.getActiveSpreadsheet().getSheetByName('BaseEvaluation');
+    sheet.setName(constants().BASE_EVALUATION_SHEET_NAME);
+    sheet.getRange('A1').setValue('Exercise name');
+    sheet.getRange('A2').setValue('Short name');
     sheet.setColumnWidth(2, 463);
-    sheet.getRange('A1:B2').activate();
-    sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-    sheet.getRange('A1:A2').activate();
-    sheet.getActiveRangeList().setBackground('#fff2cc');
-    sheet.getRange('D1').activate();
-    sheet.getCurrentCell().setValue('Items');
-    sheet.getRange('D2').activate();
-    sheet.getCurrentCell().setValue('Item 1');
-    sheet.getRange('E2').activate();
-    sheet.getCurrentCell().setValue('Item 2');
-    sheet.getRange('F2').activate();
-    sheet.getCurrentCell().setValue('Item 3');
-    sheet.getRange('G2').activate();
-    sheet.getCurrentCell().setValue('Item 4');
-    sheet.getRange('H2').activate();
-    sheet.getCurrentCell().setValue('Item 5');
-    sheet.getRange('I2').activate();
-    sheet.getCurrentCell().setValue('Item 6');
-    sheet.getRange('J2').activate();
-    sheet.getCurrentCell().setValue('Item 7');
-    sheet.getRange('K2').activate();
-    sheet.getCurrentCell().setValue('Item 8');
-    sheet.getRange('L2').activate();
-    sheet.getCurrentCell().setValue('Item 9');
-    sheet.getRange('M2').activate();
-    sheet.getCurrentCell().setValue('Item 10');
-    sheet.getRange('D3').activate();
-    sheet.getCurrentCell().setValue('Weights');
-    sheet.getRange('D4').activate();
-    sheet.getCurrentCell().setValue('Weight 1');
-    sheet.getRange('E4').activate();
-    sheet.getCurrentCell().setValue('Weight 2');
-    sheet.getRange('F4').activate();
-    sheet.getCurrentCell().setValue('Weight 3');
-    sheet.getRange('G4').activate();
-    sheet.getCurrentCell().setValue('Weight 4');
-    sheet.getRange('H4').activate();
-    sheet.getCurrentCell().setValue('Weight 5');
-    sheet.getRange('I4').activate();
-    sheet.getCurrentCell().setValue('Weight 6');
-    sheet.getRange('J4').activate();
-    sheet.getCurrentCell().setValue('Weight 7');
-    sheet.getRange('K4').activate();
-    sheet.getCurrentCell().setValue('Weight 8');
-    sheet.getRange('L4').activate();
-    sheet.getCurrentCell().setValue('Weight 9');
-    sheet.getRange('M4').activate();
-    sheet.getCurrentCell().setValue('Weight 10');
-    sheet.getRange('D1:M4').activate();
-    sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-    sheet.getRange('D1:M1').activate().mergeAcross();
-    sheet.getRange('D3:M3').activate().mergeAcross();
-    sheet.getRange('D1:M2').activate();
-    sheet.getActiveRangeList().setBackground('#d9d2e9');
-    sheet.getRange('D3:M4').activate();
-    sheet.getActiveRangeList().setBackground('#c9daf8');
-    sheet.getRange('D5').activate();
-    sheet.getCurrentCell().setValue('Max mark');
-    sheet.getRange('D6').activate();
-    sheet.getCurrentCell().setValue(10);
-    sheet.getRange('D5:D6').activate();
-    sheet.getActiveRangeList().setBackground('#b6d7a8').setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange('A1:B2').setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange('A1:A2').setBackground('#fff2cc');
+    sheet.getRange('D1').setValue('Items');
+    for (var i=4;i<14;i++) {
+        sheet.getRange(2,i).setValue('Item ' + String(i-3));
+    }
+    sheet.getRange('D3').setValue('Weights');
+    for (var i=4;i<14;i++) {
+        sheet.getRange(4,i).setValue('Weight ' + String(i-3));
+    }
+    sheet.getRange('D1:M4').setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange('D1:M1').mergeAcross();
+    sheet.getRange('D3:M3').mergeAcross();
+    sheet.getRange('D1:M2').setBackground('#d9d2e9');
+    sheet.getRange('D3:M4').setBackground('#c9daf8');
+    sheet.getRange('D5').setValue('Max mark');
+    sheet.getRange('D6').setValue(10);
+    sheet.getRange('D5:D6').setBackground('#b6d7a8').setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
   }
 function get_cell_column_letter(cell){
   return cell.getA1Notation().match(/([A-Z]+)/)[0];
@@ -134,7 +104,7 @@ function fill_down(ss,first_column,first_row,last_column,last_row){
 }
 
 function find_first_cell_by_value(sheet,value){
-  var tf = sheet.createTextFinder(value);
+  var tf = sheet.createTextFinder(value).matchEntireCell(true);
   return tf.findAll()[0];
 }
 function nextChar(c) {
@@ -154,3 +124,10 @@ function look_for_variable(array, variable_name) {
   if (variable_row.length == 1) return variable_row[0][2];
   else return '';
 }
+
+/*function look_for_variable(sheet, start_cell, sheet_name, variable_name) {
+  start_cell.activate();
+  while ((sheet.getCurrentCell().getValue() == sheet_name) && (sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+1).getValue() != variable_name)) go_down_one_cell(sheet)
+  if (sheet.getCurrentCell().getValue() == sheet_name) return sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+2).getValue();
+  else return '';
+}*/
