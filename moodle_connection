@@ -20,6 +20,7 @@ function generate_script(){
   var data = sheet.getDataRange().getValues();
   var mark_column = data[0].indexOf(constants().MARK_COLUMN_TITLE);
   var comments_column = data[0].indexOf(constants().COMMENT_COLUMN_TITLE);
+  var done_column = data[0].indexOf(constants().DONE_COLUMN_TITLE);
   data.shift();
   data.pop();
   var ui = SpreadsheetApp.getUi();
@@ -35,7 +36,7 @@ function generate_script(){
   var file_content = '';
   file_content += look_for_name_code() + "\nvar moodle_row = ''\n";
   data.forEach((row)=>{
-    if (row[mark_column])
+    if (row[mark_column] && row[done_column]=='Yes')
     {
     file_content += "moodle_row = look_for_name(\"" + row[0] + "\");\n"
     file_content += "moodle_row.getElementsByClassName('quickgrade')[0].value=" + row[mark_column] + ";\n"; 
