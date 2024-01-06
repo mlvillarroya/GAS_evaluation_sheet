@@ -73,7 +73,7 @@ function compute_evaluation_sheet(){
   sheet = ss.insertSheet();
   sheet.setName(exercise_short_name);
   ss.moveActiveSheet(ss.getNumSheets());
-  create_student_sheet_content(ctes,sheet);
+  create_avaluation_sheet_content(ctes,sheet);
   sheet.getRange(ctes.EVALUATION_FIRST_ROW_NUMBER,1).activate();
   students.forEach((st)=>{
     var i = ss.getActiveRange().getRow();
