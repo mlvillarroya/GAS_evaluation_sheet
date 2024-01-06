@@ -24,7 +24,8 @@ function constants() {
     ITEMS_NUMBER_VARIABLE_NAME: 'Items number',
     DONE_COLUMN_VARIABLE_NAME: 'Done column',
     ROWS_NUMBER_VARIABLE_NAME: 'Rows number',
-    CORRECT_VALUE: 'Correcte'
+    CORRECT_VALUE: 'Correcte',
+    EMAIL_SUBJECT: 'Qualificació de l\'activitat'
     // ...
   }
 }
@@ -42,6 +43,9 @@ function create_menu(){
     .addSubMenu(
         SpreadsheetApp.getUi().createMenu('Send to moodle')
         .addItem('Create script for moodle','generate_script')) 
+    .addSubMenu(
+        SpreadsheetApp.getUi().createMenu('Email')
+        .addItem('Send an email for every student','emailEveryStudent')) 
     .addToUi();
 }
 
@@ -51,6 +55,14 @@ function create_student_sheet_content(ctes,sheet)
     sheet.getRange(1,2).setValue(ctes.STUDENT_DATA_STUDENT_LAST_NAME);
     sheet.getRange(1,3).setValue(ctes.STUDENT_DATA_STUDENT_EMAIL);
     sheet.getRange('A1:C1').activate();
+    sheet.getActiveRangeList().setBackground('#fff2cc');
+  }
+
+function create_avaluation_sheet_content(ctes,sheet)
+  {
+    sheet.getRange(1,1).setValue(ctes.STUDENT_DATA_STUDENT_FIRST_NAME);  
+    sheet.getRange(1,2).setValue(ctes.STUDENT_DATA_STUDENT_EMAIL);
+    sheet.getRange('A1:B1').activate();
     sheet.getActiveRangeList().setBackground('#fff2cc');
   }
 
