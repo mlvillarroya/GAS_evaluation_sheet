@@ -225,3 +225,71 @@ function fill_undone_rows(){
     }
   }
 }
+function average_sheet(){
+  var ss = constants().SS;
+    if (spreadsheet_exists(ss,constants().AVERAGE_GRADES_SHEET_NAME))  {
+    SpreadsheetApp.getUi().alert('The sheet with the average grades already exists. Please delete it before continuing');
+    return;
+    }
+  ss.insertSheet();
+  const sheet = ss.getActiveSheet();
+  sheet.setName(constants().AVERAGE_GRADES_SHEET_NAME);
+  ss.moveActiveSheet(ss.getNumSheets());
+  var students_sheet = ss.getSheetByName(constants().STUDENT_DATA_SHEET_NAME);
+  var students = students_sheet.getDataRange().getValues();
+  students = students.map(row => [row[0] + " " + row[1], row[2]]);
+  students[0][0] = "Full name";
+   if (!spreadsheet_exists(ss,constants().VARIABLES_SHEET_NAME))  {
+    SpreadsheetApp.getUi().alert('Error. It seems there\'s no sheet with data to make the averages.');
+    return;
+    }
+  sheet_variables = ss.getSheetByName(constants().VARIABLES_SHEET_NAME);
+  var variables_content = sheet_variables.getDataRange().getValues();
+  var all_sheets = unique_first_column(variables_content);
+  for (let sheet_name of all_sheets) {
+   if (spreadsheet_exists(ss,sheet_name))  {
+    let grades_sheet = ss.getSheetByName(sheet_name);
+    let grades = grades_sheet.getDataRange().getValues();
+    let newMatrix = filterColumns(grades, ["Full name", "Mark"]);
+    students[0].push(sheet_name);
+    for (let j=1;j<students.length;j++) {
+      let dataIndex = newMatrix.findIndex(row => row[0] === students[j][0]);
+      if(dataIndex != -1) {
+        let value = newMatrix[dataIndex][1] || "-";
+        students[j].push(value);
+        }
+      }
+    students = fill_with_lines(students);
+    }
+  }
+  let first_data_column = number_to_letter(3);
+  let last_data_column = number_to_letter(students[0].length);
+  students[0].push("Average");
+  for (let i=1; i<students.length; i++) {
+    students[i].push("=SUMPRODUCT(" + first_data_column + (i+1) + ":" + last_data_column + (i+1) + ";$" + first_data_column + "$" + (students.length + 1) + ":$" + last_data_column + "$" + (students.length + 1) + ")/SUM($" + first_data_column + "$" + (students.length + 1) + ":$" + last_data_column + "$" + (students.length + 1) + ")");
+  }
+  students.push(["Weight",""]);
+  students[students.length-1] = students[students.length-1].concat(Array(students[0].length - students[students.length-1].length-1).fill(1));
+  students[students.length-1].push("");
+
+  // write to spreadsheet
+  let sheet_students_range = sheet.getRange(1, 1, students.length, students[0].length); // Obtener el rango de salida
+  sheet_students_range.setValues(students); // Escribir el array en el rango
+  let marks_range = sheet.getRange(2,3,students.length-1,students[0].length-2);
+  marks_range.setNumberFormat("0.00");
+  sheet_students_range.setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+  let sheet_header_range = sheet.getRange(1, 1, 1, students[0].length); // Obtener el rango de salida
+  sheet_header_range.setBackground('#fff2cc');
+  let sheet_last_row_range = sheet.getRange(students.length,1,1,students[0].length);
+  sheet_last_row_range.setBackground('#fff2cc');
+  /*
+  sheet.getRange('A1:'+done_cell_column+last_row).activate();
+  sheet.getActiveRangeList().setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);  
+  sheet.getRange('C1:'+done_cell_column+'1').activate();  
+  sheet.getActiveRangeList().setBackground('#fff2cc').setHorizontalAlignment('center');
+  sheet.getRange('A' + last_row + ':'+done_cell_column+last_row).activate();  
+  sheet.getActiveRangeList().setBackground('#fff2cc');
+  sheet.getRange(mark_cell_column+'2:'+comment_cell_column+String(last_row-1)).activate();  
+  sheet.getActiveRangeList().setBackground('#d9ead3');
+  */
+}
