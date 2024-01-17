@@ -7,7 +7,9 @@ function constants() {
   return {
     SS: SpreadsheetApp.getActiveSpreadsheet(),
     BASE_EVALUATION_SHEET_NAME: 'BaseEvaluation',
+    AVERAGE_GRADES_SHEET_NAME: "AverageGrades",
     STUDENT_DATA_SHEET_NAME: 'StudentData',    
+    VARIABLES_SHEET_NAME: 'Variables',
     STUDENT_DATA_STUDENT_FIRST_NAME: 'Full name',
     STUDENT_DATA_STUDENT_LAST_NAME: 'Last name',
     STUDENT_DATA_STUDENT_EMAIL: 'Email',
@@ -20,7 +22,6 @@ function constants() {
     MARK_COLUMN_TITLE: 'Mark',
     COMMENT_COLUMN_TITLE: 'Comment',
     DONE_COLUMN_TITLE: 'Done',
-    VARIABLES_SHEET_NAME: 'Variables',
     ITEMS_NUMBER_VARIABLE_NAME: 'Items number',
     DONE_COLUMN_VARIABLE_NAME: 'Done column',
     ROWS_NUMBER_VARIABLE_NAME: 'Rows number',
@@ -46,6 +47,9 @@ function create_menu(){
     .addSubMenu(
         SpreadsheetApp.getUi().createMenu('Email')
         .addItem('Send an email for every student','emailEveryStudent')) 
+    .addSubMenu(
+        SpreadsheetApp.getUi().createMenu('Averages')
+        .addItem('Generate averages sheet','average_sheet')) 
     .addToUi();
 }
 
@@ -137,9 +141,42 @@ function look_for_variable(array, variable_name) {
   else return '';
 }
 
-/*function look_for_variable(sheet, start_cell, sheet_name, variable_name) {
-  start_cell.activate();
-  while ((sheet.getCurrentCell().getValue() == sheet_name) && (sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+1).getValue() != variable_name)) go_down_one_cell(sheet)
-  if (sheet.getCurrentCell().getValue() == sheet_name) return sheet.getRange(sheet.getCurrentCell().getRow(),sheet.getCurrentCell().getColumn()+2).getValue();
-  else return '';
-}*/
+function unique_first_column(matrix) {
+  let values = {};
+  // Recorrer la matriz
+  for (let row of matrix) {
+    let value = row[0];
+    values[value] = true;
+  }
+  return Object.keys(values);
+}
+
+function filterColumns(matrix, headers) {
+  headers = headers || ["Full name", "Mark"];
+  let indexs = matrix[0].filter((item, index) => headers.includes(item)).map((item, index) => matrix[0].indexOf(item));
+  let newMatrix = [];
+  for (let row of matrix) {
+    let newRow = [];
+    for (let index of indexs) {
+      newRow.push(row[index]);
+    }
+    newMatrix.push(newRow);
+  }
+  return newMatrix;
+}
+
+function fill_with_lines(matrix) {
+  let first_row_length = matrix[0].length;
+  matrix = matrix.map((row) => {
+    if (row.length < first_row_length) {
+      row = row.concat(Array(first_row_length - row.length).fill("-"));
+    }
+  return row;
+  });
+  return matrix;
+}
+
+function number_to_letter(number) {
+  return String.fromCharCode(number + 96);
+}
+
